@@ -6,22 +6,23 @@ const folderPath = path.join(__dirname, 'files');
 const newFolderPath = path.join(__dirname, 'files-copy');
 
 async function copyDir() {
-  await fsPromises.rmdir(newFolderPath, { recursive: true });
+  async function copyDirContent(from, to) {
+    await fsPromises.rm(to, { recursive: true, force: true });
+    await fsPromises.mkdir(to, { recursive: true });
 
-  async function copyDirContents(folderPath, newFolderPath) {
-    await fsPromises.mkdir(newFolderPath, { recursive: true });
+    const folderContent = await fsPromises.readdir(from, { withFileTypes: true });
 
-    const folderContents = await fsPromises.readdir(folderPath, { withFileTypes: true });
-
-    folderContents.forEach((el) => {
-      if (!el.isDirectory()) {
-        fsPromises.copyFile(path.join(folderPath, el.name), path.join(newFolderPath, el.name));
+    folderContent.forEach((el) => {
+      const elPathFrom = path.resolve(from, el.name);
+      const elPathTo = path.resolve(to, el.name);
+      if (el.isDirectory()) {
+        copyDirContent(elPathFrom, elPathTo);
       } else {
-        copyDirContents(path.join(folderPath, el.name), path.join(newFolderPath, el.name));
+        fsPromises.copyFile(elPathFrom, elPathTo);
       }
     });
   }
-  copyDirContents(folderPath, newFolderPath);
+  copyDirContent(folderPath, newFolderPath);
 }
 
 copyDir();
